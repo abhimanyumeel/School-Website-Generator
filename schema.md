@@ -62,12 +62,65 @@
 # Tables
 
 - Themes
+  - id
+  - name
+  - schema
+  - createdAt
+  - updatedAt
 - Schools
+  - id
+  - name
+  - schoolGroupId
+  - createdAt
+  - updatedAt
 - School Groups
+  - id
+  - name
+  - createdAt
+  - updatedAt
 - Users
-- ImageSets
+  - id
+  - name
+  - email
+  - password
+  - phone
+  - entityType
+  - entityId
+  - role
+  - createdAt
+  - updatedAt
+- Documents
+  - id
+  - createdAt
+  - updatedAt
+  - type
+  - path
+  - url
+  - order
+  - name
+  - mimeType
+  - documentGroupId
+- DocumentGroups
+  - id
+  - accessor
+  - createdAt
+  - updatedAt
+  - schoolWebsiteId
 - SchoolWebsites
-- SchoolWebsiteEditors
-- Forms
+  - id
+  - name
+  - createdAt
+  - updatedAt
+  - schoolId
+  - themeId
+  - data
+  - version
+  - remarks
+  - status (active, inactive)
 - FormSubmission
-  
+  - id
+  - schoolWebsiteId
+  - type
+  - data
+  - createdAt
+  - updatedAt
