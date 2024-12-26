@@ -24,6 +24,13 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
     @UseGuards(JwtAuthGuard)
     @Get('profile')
     async getProfile(@Request() req) {
+        return this.authService.getCurrentUser(req.user.id);
+
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('me')
+    async getCurrentUser(@Request() req) {
         return this.authService.getCurrentUser(req.user.sub);
     }
 }

@@ -16,7 +16,8 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ access_token: string }> {
-    // Check if user already exists
+    console.log('Registration attempt with:', registerDto);
+
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -25,58 +26,80 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Hash the password
     const hashedPassword = await this.hashPassword(registerDto.password);
 
-    // Create new user
     const user = this.userRepository.create({
-      ...registerDto,
+      name: registerDto.name,
+      email: registerDto.email,
       password: hashedPassword,
+      entityType: registerDto.entityType || 'user',
+      entityId: registerDto.entityId || 'default',
+      role: registerDto.role || 'user',
     });
 
-    // Save the user
-    await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+    console.log('Saved user:', savedUser);
 
-    // Generate JWT token
-    const token = this.generateToken(user);
+    const token = this.generateToken(savedUser);
+    console.log('Generated token payload:', this.jwtService.decode(token));
 
     return { access_token: token };
   }
 
   async login(loginDto: LoginDto): Promise<{ access_token: string }> {
-    // Find user by email
+    console.log('Login attempt with email:', loginDto.email);
+
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
     });
 
+    console.log('Found user during login:', user);
+
     if (!user) {
-      throw new UnauthorizedException('User not found with this email');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Verify password
     const isPasswordValid = await this.comparePasswords(
       loginDto.password,
       user.password,
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Incorrect password');
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate JWT token
+    console.log('User found during login:', user);
+
     const token = this.generateToken(user);
+    console.log('Login token payload:', this.jwtService.decode(token));
 
     return { access_token: token };
   }
 
-  async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.userRepository.findOne({ where: { email } });
+  async getCurrentUser(id: string): Promise<Omit<User, 'password'>> {
+    console.log('Getting user with ID:', id);
+    
+    const user = await this.userRepository.findOne({ 
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        entityType: true,
+        entityId: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
 
-    if (user && (await this.comparePasswords(password, user.password))) {
-      const { password, ...result } = user;
-      return result;
+    console.log('Found user in getCurrentUser:', user);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
-    return null;
+
+    return user;
   }
 
   private generateToken(user: User): string {
@@ -87,7 +110,7 @@ export class AuthService {
       entityType: user.entityType,
       entityId: user.entityId,
     };
-
+    console.log('Generating token with payload:', payload);
     return this.jwtService.sign(payload);
   }
 
@@ -103,17 +126,16 @@ export class AuthService {
     return bcrypt.compare(plainTextPassword, hashedPassword);
   }
 
-  async findById(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-    return user;
-  }
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.userRepository.findOne({ 
+      where: { email },
+      select: ['id', 'email', 'password', 'role', 'entityType', 'entityId'] 
+    });
 
-  async getCurrentUser(id: string): Promise<Omit<User, 'password'>> {
-    const user = await this.findById(id);
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    if (user && (await this.comparePasswords(password, user.password))) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
   }
 } 
